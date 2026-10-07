@@ -1,0 +1,8 @@
+.git
+.gitignore
+.phpunit.cache
+.env
+Dockerfile
+docker-compose.yml
+docker/
+README.md

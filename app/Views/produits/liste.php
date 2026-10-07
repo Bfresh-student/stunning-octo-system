@@ -85,9 +85,9 @@ $baseUrl = $baseUrl ?? '';
                         $stock = (int) ($p['stock'] ?? 0);
                         $imgSrc = (string) ($p['image_url'] ?? '');
                         $fullImgUrl = '';
-                        if (!empty($imgSrc)) {
-                            $fullImgUrl = str_starts_with($imgSrc, 'http') ? $imgSrc : $baseUrl . $imgSrc;
-                        }
+                    if (!empty($imgSrc)) {
+                        $fullImgUrl = str_starts_with($imgSrc, 'http') ? $imgSrc : $baseUrl . $imgSrc;
+                    }
                     ?>
                     <tr>
                         <td>

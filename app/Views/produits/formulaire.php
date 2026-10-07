@@ -7,8 +7,8 @@ use App\Utils\Csrf;
 $produit = $produit ?? null;
 $baseUrl = $baseUrl ?? '';
 $isEdit = $produit !== null;
-$actionUrl = $isEdit 
-    ? $baseUrl . '/produits/modifier/' . (string) ($produit['id'] ?? '') 
+$actionUrl = $isEdit
+    ? $baseUrl . '/produits/modifier/' . (string) ($produit['id'] ?? '')
     : $baseUrl . '/produits/ajouter';
 ?>
 <!DOCTYPE html>
@@ -74,7 +74,7 @@ $actionUrl = $isEdit
                 <?php if (!empty($produit['image_url'])) : ?>
                     <div class="image-preview">
                         <small>Aperçu actuel :</small><br>
-                        <?php 
+                        <?php
                             $imgSrc = (string) $produit['image_url'];
                             $fullImgUrl = str_starts_with($imgSrc, 'http') ? $imgSrc : $baseUrl . $imgSrc;
                         ?>

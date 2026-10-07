@@ -1,0 +1,85 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  # -------------------------------------------------------------
+  # Étape 1 : Tests automatisés et Qualité du code
+  # -------------------------------------------------------------
+  tests:
+    name: PHP Tests & Code Quality
+    runs-on: ubuntu-latest
+
+    # Service MySQL pour exécuter les tests d'intégration avec la base de données réelle
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: boutique
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Configuration de PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo, pdo_mysql, pdo_sqlite, mbstring, zip
+          coverage: none
+          tools: composer
+
+      - name: Cache des dépendances Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Installation des dépendances Composer
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Vérification de la syntaxe PHP (Lint)
+        run: |
+          find app config public test -type f -name "*.php" -exec php -l {} \;
+
+      - name: Initialisation de la base de données de test
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -prootpassword boutique < docker/init.sql
+
+      - name: Création du fichier d'environnement .env pour les tests
+        run: |
+          echo "DB_HOST=127.0.0.1" > .env
+          echo "DB_NAME=boutique" >> .env
+          echo "DB_USER=root" >> .env
+          echo "DB_PASSWORD=rootpassword" >> .env
+
+      - name: Exécution des tests unitaires et fonctionnels (PHPUnit)
+        run: vendor/bin/phpunit --testdox
+
+  # -------------------------------------------------------------
+  # Étape 2 : Vérification du Build Docker
+  # -------------------------------------------------------------
+  docker-build:
+    name: Docker Build & Configuration Check
+    runs-on: ubuntu-latest
+    needs: tests
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Validation du fichier docker-compose.yml
+        run: docker compose config
+
+      - name: Construction de l'image Docker
+        run: docker build -t boutique-app:latest .
