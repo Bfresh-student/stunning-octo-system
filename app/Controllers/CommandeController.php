@@ -8,6 +8,7 @@ use App\Controllers\Controller;
 use App\Models\Commande;
 use App\Models\LigneCommandes;
 use App\Models\Panier;
+use App\Utils\AppLogger;
 use App\Utils\Csrf;
 
 class CommandeController extends Controller
@@ -60,6 +61,7 @@ class CommandeController extends Controller
         $commande = $this->modeleCommande->getCommandeById($id);
 
         if (!$commande) {
+            AppLogger::warning('Consultation de commande introuvable', ['commande_id' => $id]);
             http_response_code(404);
             echo "Commande introuvable.";
             return;
@@ -86,6 +88,7 @@ class CommandeController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $token = $_POST['csrf_token'] ?? '';
             if (!Csrf::validateToken($token)) {
+                AppLogger::warning('Tentative de commande : jeton CSRF invalide', ['user_id' => $userId]);
                 http_response_code(403);
                 echo "Jeton CSRF invalide.";
                 return;
@@ -93,6 +96,7 @@ class CommandeController extends Controller
 
             $panier = $this->modelePanier->getPanierByUserId($userId);
             if (empty($panier)) {
+                AppLogger::warning('Échec de commande : panier vide', ['user_id' => $userId]);
                 header('Location: ' . $baseUrl . '/panier');
                 exit;
             }
@@ -115,6 +119,13 @@ class CommandeController extends Controller
                         );
                     }
                 }
+
+                AppLogger::info('Nouvelle commande passée avec succès', [
+                    'commande_id' => $commandeId,
+                    'user_id'     => $userId,
+                    'total'       => $total,
+                    'articles'    => count($panier)
+                ]);
 
                 $this->modelePanier->viderPanier($userId);
                 header('Location: ' . $baseUrl . '/commandes');

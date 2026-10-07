@@ -28,9 +28,9 @@ WORKDIR /var/www/html
 # 7. Copier tous les fichiers du projet dans le conteneur
 COPY . /var/www/html/
 
-# 8. Créer le dossier d'uploads et donner les droits à l'utilisateur Apache (www-data)
-RUN mkdir -p /var/www/html/public/uploads \
-    && chown -R www-data:www-data /var/www/html/public/uploads \
+# 8. Créer les dossiers d'uploads et de logs et donner les droits à l'utilisateur Apache (www-data)
+RUN mkdir -p /var/www/html/public/uploads /var/www/html/logs \
+    && chown -R www-data:www-data /var/www/html/public/uploads /var/www/html/logs \
     && chown -R www-data:www-data /var/www/html/app
 
 EXPOSE 80

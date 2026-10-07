@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Controllers\Controller;
 use App\Models\Produits;
+use App\Utils\AppLogger;
 use App\Utils\Csrf;
 
 class ProduitsController extends Controller
@@ -52,6 +53,7 @@ class ProduitsController extends Controller
             // Vérification du jeton CSRF
             $token = $_POST['csrf_token'] ?? '';
             if (!Csrf::validateToken($token)) {
+                AppLogger::warning('Tentative d\'ajout de produit : jeton CSRF invalide');
                 http_response_code(403);
                 echo "Jeton CSRF invalide.";
                 return;
@@ -64,6 +66,12 @@ class ProduitsController extends Controller
             $image = trim($_POST['image'] ?? '');
 
             $this->modeleProduit->addProduit($nom, $description, $prix, $stock, $image);
+            AppLogger::info('Nouveau produit ajouté', [
+                'nom'   => $nom,
+                'prix'  => $prix,
+                'stock' => $stock
+            ]);
+
             header('Location: ' . $this->getBaseUrl() . '/produits');
             exit;
         }
@@ -75,6 +83,7 @@ class ProduitsController extends Controller
     {
         $produit = $this->modeleProduit->getProduitById($id);
         if (!$produit) {
+            AppLogger::warning('Produit introuvable lors de l\'édition', ['id' => $id]);
             http_response_code(404);
             echo "Produit introuvable";
             return;
@@ -95,6 +104,7 @@ class ProduitsController extends Controller
 
             $token = $_POST['csrf_token'] ?? '';
             if (!Csrf::validateToken($token)) {
+                AppLogger::warning('Tentative de modification de produit : jeton CSRF invalide', ['id' => $id]);
                 http_response_code(403);
                 echo "Jeton CSRF invalide.";
                 return;
@@ -107,6 +117,13 @@ class ProduitsController extends Controller
             $image = trim($_POST['image'] ?? '');
 
             $this->modeleProduit->updateProduit($id, $nom, $description, $prix, $stock, $image);
+            AppLogger::info('Produit mis à jour avec succès', [
+                'id'    => $id,
+                'nom'   => $nom,
+                'prix'  => $prix,
+                'stock' => $stock
+            ]);
+
             header('Location: ' . $this->getBaseUrl() . '/produits');
             exit;
         }
@@ -117,6 +134,7 @@ class ProduitsController extends Controller
     public function supprimer(int $id): void
     {
         $this->modeleProduit->deleteProduit($id);
+        AppLogger::warning('Produit supprimé', ['id' => $id]);
         header('Location: ' . $this->getBaseUrl() . '/produits');
         exit;
     }

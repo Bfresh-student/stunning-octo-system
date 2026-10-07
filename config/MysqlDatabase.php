@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\config;
 
+use App\Utils\AppLogger;
 use PDO;
 use Dotenv\Dotenv;
 
@@ -37,6 +38,12 @@ class MysqlDatabase {
             $this->pdo = new PDO($dsn, $this->username, $this->password);
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         } catch (\PDOException $e) {
+            AppLogger::critical('Erreur de connexion à la base de données', [
+                'host'    => $this->host,
+                'db_name' => $this->db_name,
+                'error'   => $e->getMessage(),
+                'code'    => (int) $e->getCode()
+            ]);
             error_log("Connection failed: " . $e->getMessage() . " Code: " . $e->getCode());
             throw new \PDOException("Erreur de connexion à la base de données : " . $e->getMessage(), (int) $e->getCode());
         }

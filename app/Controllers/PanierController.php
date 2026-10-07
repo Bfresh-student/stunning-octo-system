@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Controllers\Controller;
 use App\Models\Panier;
 use App\Models\Produits;
+use App\Utils\AppLogger;
 use App\Utils\Csrf;
 
 class PanierController extends Controller
@@ -68,6 +69,7 @@ class PanierController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $token = $_POST['csrf_token'] ?? '';
             if (!Csrf::validateToken($token)) {
+                AppLogger::warning('Tentative d\'ajout au panier : jeton CSRF invalide', ['user_id' => $userId]);
                 http_response_code(403);
                 echo "Jeton CSRF invalide.";
                 return;
@@ -78,6 +80,11 @@ class PanierController extends Controller
 
             if ($produitId > 0) {
                 $this->modelePanier->ajouterProduit($userId, $produitId, $quantite);
+                AppLogger::info('Produit ajouté au panier', [
+                    'user_id'    => $userId,
+                    'produit_id' => $produitId,
+                    'quantite'   => $quantite
+                ]);
             }
         }
 
@@ -98,6 +105,7 @@ class PanierController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $token = $_POST['csrf_token'] ?? '';
             if (!Csrf::validateToken($token)) {
+                AppLogger::warning('Tentative de modification panier : jeton CSRF invalide', ['user_id' => $userId]);
                 http_response_code(403);
                 echo "Jeton CSRF invalide.";
                 return;
@@ -108,6 +116,11 @@ class PanierController extends Controller
 
             if ($produitId > 0) {
                 $this->modelePanier->updateQuantite($userId, $produitId, $quantite);
+                AppLogger::info('Quantité modifiée dans le panier', [
+                    'user_id'    => $userId,
+                    'produit_id' => $produitId,
+                    'quantite'   => $quantite
+                ]);
             }
         }
 
@@ -129,6 +142,10 @@ class PanierController extends Controller
             $produitId = (int) ($_POST['produit_id'] ?? 0);
             if ($produitId > 0) {
                 $this->modelePanier->supprimerProduit($userId, $produitId);
+                AppLogger::info('Produit retiré du panier', [
+                    'user_id'    => $userId,
+                    'produit_id' => $produitId
+                ]);
             }
         }
 
@@ -143,6 +160,7 @@ class PanierController extends Controller
 
         if ($userId) {
             $this->modelePanier->viderPanier($userId);
+            AppLogger::info('Panier vidé', ['user_id' => $userId]);
         }
 
         header('Location: ' . $baseUrl . '/panier');

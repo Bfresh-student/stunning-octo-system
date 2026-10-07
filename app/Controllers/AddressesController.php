@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Controllers\Controller;
 use App\Models\Addresse;
+use App\Utils\AppLogger;
 use App\Utils\Csrf;
 
 class AddressesController extends Controller
@@ -62,6 +63,7 @@ class AddressesController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $token = $_POST['csrf_token'] ?? '';
             if (!Csrf::validateToken($token)) {
+                AppLogger::warning('Tentative d\'ajout d\'adresse : jeton CSRF invalide', ['user_id' => $userId]);
                 http_response_code(403);
                 echo "Jeton CSRF invalide.";
                 return;
@@ -74,6 +76,12 @@ class AddressesController extends Controller
             $telephone = trim($_POST['telephone'] ?? '') ?: null;
 
             $this->modeleAdresse->addAdresse($userId, $rue, $ville, $codePostal, $pays, $telephone);
+            AppLogger::info('Nouvelle adresse ajoutée', [
+                'user_id' => $userId,
+                'ville'   => $ville,
+                'pays'    => $pays
+            ]);
+
             header('Location: ' . $baseUrl . '/adresses');
             exit;
         }
@@ -87,7 +95,12 @@ class AddressesController extends Controller
     public function supprimer(int $id): void
     {
         $baseUrl = $this->getBaseUrl();
+        $userId = $this->getUserId();
         $this->modeleAdresse->deleteAdresse($id);
+        AppLogger::info('Adresse supprimée', [
+            'id'      => $id,
+            'user_id' => $userId
+        ]);
         header('Location: ' . $baseUrl . '/adresses');
         exit;
     }

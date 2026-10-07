@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Routes;
 
+use App\Utils\AppLogger;
 use PDO;
 
 class Router
@@ -135,6 +136,10 @@ class Router
             }
         }
 
+        AppLogger::warning('Route non trouvée (404)', [
+            'uri'    => $parsedUri,
+            'method' => $method
+        ]);
         http_response_code(404);
         echo "<h1>Page non trouvée (404)</h1>";
     }

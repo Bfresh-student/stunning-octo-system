@@ -8,6 +8,7 @@ use App\Controllers\Controller;
 use App\Models\User;
 use App\Services\Hashage;
 use App\Services\UploadFiles;
+use App\Utils\AppLogger;
 use App\Utils\Csrf;
 
 class UserController extends Controller
@@ -50,6 +51,8 @@ class UserController extends Controller
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
+        $userId = $_SESSION['user']['id'] ?? null;
+        AppLogger::info('Déconnexion utilisateur', ['id' => $userId]);
         session_unset();
         session_destroy();
         header('Location: ' . $this->getBaseUrl() . '/login');
@@ -77,9 +80,14 @@ class UserController extends Controller
                     'email' => $userData['email'],
                     'role'  => 'user'
                 ];
+                AppLogger::info('Connexion réussie', [
+                    'id'    => $userData['id'],
+                    'email' => $userData['email']
+                ]);
                 header('Location: ' . $baseUrl . '/profile');
                 exit;
             } else {
+                AppLogger::error('Échec de connexion', ['email' => $email]);
                 $error = "Identifiants invalides.";
                 $this->render('login', [
                     'error'   => $error,
@@ -110,6 +118,7 @@ class UserController extends Controller
             // Vérification jeton CSRF
             if (!Csrf::validateToken($csrfToken)) {
                 $error = "Jeton CSRF invalide.";
+                AppLogger::warning('Échec de l\'inscription : jeton CSRF invalide');
                 $this->render('register', ['error' => $error, 'baseUrl' => $baseUrl]);
                 return;
             }
@@ -117,30 +126,35 @@ class UserController extends Controller
             // Vérification des champs
             if (empty($username) || empty($password) || empty($confirmPassword) || empty($email)) {
                 $error = "Tous les champs sont requis.";
+                AppLogger::warning('Échec de l\'inscription : champs requis manquants', ['email' => $email]);
                 $this->render('register', ['error' => $error, 'baseUrl' => $baseUrl]);
                 return;
             }
 
             if (strlen($password) < 8) {
                 $error = "Le mot de passe doit contenir au moins 8 caractères.";
+                AppLogger::warning('Échec de l\'inscription : mot de passe trop court', ['email' => $email]);
                 $this->render('register', ['error' => $error, 'baseUrl' => $baseUrl]);
                 return;
             }
 
             if ($password !== $confirmPassword) {
                 $error = "Les mots de passe ne correspondent pas.";
+                AppLogger::warning('Échec de l\'inscription : mots de passe discordants', ['email' => $email]);
                 $this->render('register', ['error' => $error, 'baseUrl' => $baseUrl]);
                 return;
             }
 
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = "Adresse e-mail invalide.";
+                AppLogger::warning('Échec de l\'inscription : adresse email invalide', ['email' => $email]);
                 $this->render('register', ['error' => $error, 'baseUrl' => $baseUrl]);
                 return;
             }
 
             if ($this->user->getUserByEmail($email)) {
                 $error = "Un utilisateur avec cet e-mail existe déjà.";
+                AppLogger::warning('Échec de l\'inscription : compte déjà existant', ['email' => $email]);
                 $this->render('register', ['error' => $error, 'baseUrl' => $baseUrl]);
                 return;
             }
@@ -152,6 +166,10 @@ class UserController extends Controller
                     $profileImage = $this->uploadFiles->uploadFileImage('profile_image');
                 } catch (\Exception $e) {
                     $error = $e->getMessage();
+                    AppLogger::error('Erreur lors du téléchargement de la photo de profil', [
+                        'erreur' => $error,
+                        'email'  => $email
+                    ]);
                     $this->render('register', ['error' => $error, 'baseUrl' => $baseUrl]);
                     return;
                 }
@@ -163,8 +181,11 @@ class UserController extends Controller
 
             // Connexion automatique après inscription
             $userData = $this->user->getUserByEmail($email);
+            $newUserId = isset($userData['id']) ? (int) $userData['id'] : null;
+            AppLogger::info('Nouvel utilisateur inscrit', ['id' => $newUserId]);
+
             $_SESSION['user'] = [
-                'id'            => $userData['id'] ?? null,
+                'id'            => $newUserId,
                 'nom'           => $username,
                 'email'         => $email,
                 'profile_image' => $profileImage,
